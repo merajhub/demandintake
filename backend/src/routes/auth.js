@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { pool } = require('../config/database');
+const { dbFetch, dbInsert } = require('../services/dbClient');
 const { authenticate } = require('../middleware/auth');
 
 const router = Router();
@@ -16,17 +16,21 @@ router.post('/register', async (req, res) => {
             return;
         }
 
-        const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
+        const existing = await dbFetch('getUserByEmail', { email });
         if (existing.length > 0) {
             res.status(409).json({ error: 'Email already registered' });
             return;
         }
 
         const password_hash = await bcrypt.hash(password, 10);
-        const [result] = await pool.query(
-            'INSERT INTO users (email, password_hash, full_name, role, department, phone) VALUES (?, ?, ?, ?, ?, ?)',
-            [email, password_hash, full_name, role || 'requestor', department || null, phone || null]
-        );
+        const result = await dbInsert('users', [{
+            email,
+            password_hash,
+            full_name,
+            role: role || 'requestor',
+            department: department || null,
+            phone: phone || null
+        }]);
 
         const userId = result.insertId;
         const secret = process.env.JWT_SECRET || 'default-secret';
@@ -55,7 +59,7 @@ router.post('/login', async (req, res) => {
             return;
         }
 
-        const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+        const rows = await dbFetch('getUserByEmail', { email });
         if (rows.length === 0) {
             res.status(401).json({ error: 'Invalid credentials' });
             return;
@@ -89,10 +93,7 @@ router.post('/login', async (req, res) => {
 // GET /api/auth/me
 router.get('/me', authenticate, async (req, res) => {
     try {
-        const [rows] = await pool.query(
-            'SELECT id, email, full_name, role, department, phone FROM users WHERE id = ?',
-            [req.user.id]
-        );
+        const rows = await dbFetch('getUserProfileById', { id: req.user.id });
         if (rows.length === 0) {
             res.status(404).json({ error: 'User not found' });
             return;

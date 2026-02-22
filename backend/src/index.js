@@ -4,7 +4,6 @@ dotenv.config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { pool } = require('./config/database');
 const authRoutes = require('./routes/auth');
 const requestRoutes = require('./routes/requests');
 const workflowRoutes = require('./routes/workflow');
@@ -45,16 +44,20 @@ app.use((err, _req, res, _next) => {
 // Start server
 async function start() {
     try {
-        const connection = await pool.getConnection();
-        console.log('Database connected successfully.');
-        connection.release();
+        // Verify DB Service is reachable
+        const dbServiceUrl = process.env.DB_SERVICE_URL || 'http://localhost:3001';
+        const healthRes = await fetch(`${dbServiceUrl}/api/health`);
+        const health = await healthRes.json();
+        console.log('DB Service connected:', health);
 
         app.listen(PORT, () => {
             console.log(`Server running on http://localhost:${PORT}`);
         });
     } catch (error) {
-        console.error('Failed to start server:', error);
-        process.exit(1);
+        console.warn('Warning: DB Service not reachable. Starting anyway...', error.message);
+        app.listen(PORT, () => {
+            console.log(`Server running on http://localhost:${PORT}`);
+        });
     }
 }
 

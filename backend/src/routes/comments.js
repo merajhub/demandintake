@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { pool } = require('../config/database');
+const { dbFetch, dbInsert } = require('../services/dbClient');
 const { authenticate } = require('../middleware/auth');
 
 const router = Router();
@@ -7,14 +7,7 @@ const router = Router();
 // GET /api/comments/:requestId - Get all comments for a request
 router.get('/:requestId', authenticate, async (req, res) => {
     try {
-        const [comments] = await pool.query(
-            `SELECT c.*, u.id AS user_id_ref, u.full_name AS user_full_name, u.role AS user_role
-             FROM comments c
-             LEFT JOIN users u ON c.user_id = u.id
-             WHERE c.request_id = ?
-             ORDER BY c.created_at ASC`,
-            [req.params.requestId]
-        );
+        const comments = await dbFetch('getCommentsByRequestId', { request_id: req.params.requestId });
 
         const result = comments.map(c => ({
             ...c,
@@ -38,18 +31,13 @@ router.post('/:requestId', authenticate, async (req, res) => {
             res.status(400).json({ error: 'Message is required' }); return;
         }
 
-        const [result] = await pool.query(
-            'INSERT INTO comments (request_id, user_id, message) VALUES (?, ?, ?)',
-            [parseInt(req.params.requestId), req.user.id, message]
-        );
+        const result = await dbInsert('comments', [{
+            request_id: parseInt(req.params.requestId),
+            user_id: req.user.id,
+            message
+        }]);
 
-        const [rows] = await pool.query(
-            `SELECT c.*, u.id AS user_id_ref, u.full_name AS user_full_name, u.role AS user_role
-             FROM comments c
-             LEFT JOIN users u ON c.user_id = u.id
-             WHERE c.id = ?`,
-            [result.insertId]
-        );
+        const rows = await dbFetch('getCommentById', { id: result.insertId });
 
         const comment = rows[0];
         const fullComment = {

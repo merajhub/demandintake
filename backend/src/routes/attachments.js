@@ -2,7 +2,7 @@ const { Router } = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { pool } = require('../config/database');
+const { dbFetch, dbInsert } = require('../services/dbClient');
 const { authenticate } = require('../middleware/auth');
 
 // Ensure uploads directory exists
@@ -38,9 +38,7 @@ const router = Router();
 // POST /api/attachments/:requestId - Upload file(s) for a request
 router.post('/:requestId', authenticate, upload.array('files', 5), async (req, res) => {
     try {
-        const [requestRows] = await pool.query(
-            'SELECT id FROM intake_requests WHERE id = ?', [req.params.requestId]
-        );
+        const requestRows = await dbFetch('getRequestIdExists', { id: req.params.requestId });
         if (requestRows.length === 0) { res.status(404).json({ error: 'Request not found' }); return; }
 
         const files = req.files;
@@ -50,13 +48,16 @@ router.post('/:requestId', authenticate, upload.array('files', 5), async (req, r
 
         const attachments = [];
         for (const file of files) {
-            const [result] = await pool.query(
-                `INSERT INTO attachments (request_id, uploaded_by, original_name, filename, filepath, mimetype, size)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [req.params.requestId, req.user.id, file.originalname, file.filename,
-                 file.path, file.mimetype, file.size]
-            );
-            const [rows] = await pool.query('SELECT * FROM attachments WHERE id = ?', [result.insertId]);
+            const result = await dbInsert('attachments', [{
+                request_id: req.params.requestId,
+                uploaded_by: req.user.id,
+                original_name: file.originalname,
+                filename: file.filename,
+                filepath: file.path,
+                mimetype: file.mimetype,
+                size: file.size
+            }]);
+            const rows = await dbFetch('getAttachmentById', { id: result.insertId });
             attachments.push(rows[0]);
         }
 
@@ -69,10 +70,7 @@ router.post('/:requestId', authenticate, upload.array('files', 5), async (req, r
 // GET /api/attachments/:requestId - List attachments for a request
 router.get('/:requestId', authenticate, async (req, res) => {
     try {
-        const [attachments] = await pool.query(
-            'SELECT * FROM attachments WHERE request_id = ? ORDER BY created_at DESC',
-            [req.params.requestId]
-        );
+        const attachments = await dbFetch('getAttachmentsByRequestId', { request_id: req.params.requestId });
         res.json(attachments);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -82,7 +80,7 @@ router.get('/:requestId', authenticate, async (req, res) => {
 // GET /api/attachments/download/:id - Download a specific attachment
 router.get('/download/:id', authenticate, async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT * FROM attachments WHERE id = ?', [req.params.id]);
+        const rows = await dbFetch('getAttachmentById', { id: req.params.id });
         if (rows.length === 0) { res.status(404).json({ error: 'Attachment not found' }); return; }
 
         const attachment = rows[0];

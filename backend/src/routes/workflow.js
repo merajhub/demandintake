@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { pool } = require('../config/database');
+const { dbFetch, dbInsert, dbUpdate } = require('../services/dbClient');
 const { authenticate, authorize } = require('../middleware/auth');
 
 const router = Router();
@@ -7,7 +7,7 @@ const router = Router();
 // PUT /api/workflow/:id/submit - Requestor submits the intake form
 router.put('/:id/submit', authenticate, async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT * FROM intake_requests WHERE id = ?', [req.params.id]);
+        const rows = await dbFetch('getSimpleRequestById', { id: req.params.id });
         if (rows.length === 0) { res.status(404).json({ error: 'Request not found' }); return; }
         const request = rows[0];
 
@@ -26,10 +26,11 @@ router.put('/:id/submit', authenticate, async (req, res) => {
             newStatus = 'committee_review';
         }
 
-        await pool.query(
-            'UPDATE intake_requests SET status = ?, date_of_submission = NOW() WHERE id = ?',
-            [newStatus, req.params.id]
-        );
+        await dbUpdate('intake_requests', {
+            status: newStatus,
+            date_of_submission: new Date().toISOString().slice(0, 19).replace('T', ' ')
+        }, { id: req.params.id });
+
         res.json({ message: 'Request submitted successfully', status: newStatus });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -39,7 +40,7 @@ router.put('/:id/submit', authenticate, async (req, res) => {
 // PUT /api/workflow/:id/scrub-review - Scrub team reviews the request
 router.put('/:id/scrub-review', authenticate, authorize('scrub_team', 'admin'), async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT * FROM intake_requests WHERE id = ?', [req.params.id]);
+        const rows = await dbFetch('getSimpleRequestById', { id: req.params.id });
         if (rows.length === 0) { res.status(404).json({ error: 'Request not found' }); return; }
         const request = rows[0];
 
@@ -53,10 +54,12 @@ router.put('/:id/scrub-review', authenticate, authorize('scrub_team', 'admin'), 
         }
 
         // Create the review record
-        await pool.query(
-            'INSERT INTO scrub_reviews (request_id, reviewer_id, decision, remarks) VALUES (?, ?, ?, ?)',
-            [request.id, req.user.id, decision, remarks || null]
-        );
+        await dbInsert('scrub_reviews', [{
+            request_id: request.id,
+            reviewer_id: req.user.id,
+            decision,
+            remarks: remarks || null
+        }]);
 
         // Determine new status
         let newStatus;
@@ -66,10 +69,7 @@ router.put('/:id/scrub-review', authenticate, authorize('scrub_team', 'admin'), 
             newStatus = 'scrub_questions';
         } else if (decision === 'approve') {
             // Check if ALL participating scrub members have approved
-            const [allReviews] = await pool.query(
-                'SELECT * FROM scrub_reviews WHERE request_id = ? ORDER BY created_at ASC',
-                [request.id]
-            );
+            const allReviews = await dbFetch('getAllScrubReviewsByRequestId', { request_id: request.id });
             const latestByReviewer = {};
             for (const r of allReviews) {
                 const ts = new Date(r.created_at).getTime();
@@ -89,7 +89,7 @@ router.put('/:id/scrub-review', authenticate, authorize('scrub_team', 'admin'), 
             newStatus = request.status;
         }
 
-        await pool.query('UPDATE intake_requests SET status = ? WHERE id = ?', [newStatus, request.id]);
+        await dbUpdate('intake_requests', { status: newStatus }, { id: request.id });
         res.json({ message: `Scrub review completed: ${decision}`, status: newStatus });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -99,10 +99,10 @@ router.put('/:id/scrub-review', authenticate, authorize('scrub_team', 'admin'), 
 // PUT /api/workflow/:id/scrub-review/:reviewId - Edit an existing scrub review question
 router.put('/:id/scrub-review/:reviewId', authenticate, authorize('scrub_team', 'admin'), async (req, res) => {
     try {
-        const [reviews] = await pool.query(
-            'SELECT * FROM scrub_reviews WHERE id = ? AND request_id = ?',
-            [req.params.reviewId, req.params.id]
-        );
+        const reviews = await dbFetch('getScrubReviewByIdAndRequestId', {
+            reviewId: req.params.reviewId,
+            requestId: req.params.id
+        });
         if (reviews.length === 0) { res.status(404).json({ error: 'Review not found' }); return; }
         const review = reviews[0];
 
@@ -117,14 +117,14 @@ router.put('/:id/scrub-review/:reviewId', authenticate, authorize('scrub_team', 
         }
 
         // Check if the submitter has already replied after this review
-        const [requestRows] = await pool.query('SELECT * FROM intake_requests WHERE id = ?', [req.params.id]);
+        const requestRows = await dbFetch('getSimpleRequestById', { id: req.params.id });
         if (requestRows.length === 0) { res.status(404).json({ error: 'Request not found' }); return; }
         const request = requestRows[0];
 
-        const [submitterReplies] = await pool.query(
-            'SELECT * FROM comments WHERE request_id = ? AND user_id = ?',
-            [req.params.id, request.requestor_id]
-        );
+        const submitterReplies = await dbFetch('getCommentsByRequestIdAndUserId', {
+            request_id: req.params.id,
+            user_id: request.requestor_id
+        });
         const reviewTime = new Date(review.created_at).getTime();
         const hasReplyAfter = submitterReplies.some(
             c => new Date(c.created_at).getTime() > reviewTime
@@ -134,10 +134,10 @@ router.put('/:id/scrub-review/:reviewId', authenticate, authorize('scrub_team', 
         }
 
         const { remarks } = req.body;
-        await pool.query('UPDATE scrub_reviews SET remarks = ? WHERE id = ?', [remarks, review.id]);
+        await dbUpdate('scrub_reviews', { remarks }, { id: review.id });
 
         // Return updated review
-        const [updated] = await pool.query('SELECT * FROM scrub_reviews WHERE id = ?', [review.id]);
+        const updated = await dbFetch('getScrubReviewById', { id: review.id });
         res.json({ message: 'Review updated successfully', review: updated[0] });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -147,7 +147,7 @@ router.put('/:id/scrub-review/:reviewId', authenticate, authorize('scrub_team', 
 // PUT /api/workflow/:id/committee-review - Committee reviews the request
 router.put('/:id/committee-review', authenticate, authorize('committee', 'admin'), async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT * FROM intake_requests WHERE id = ?', [req.params.id]);
+        const rows = await dbFetch('getSimpleRequestById', { id: req.params.id });
         if (rows.length === 0) { res.status(404).json({ error: 'Request not found' }); return; }
         const request = rows[0];
 
@@ -161,10 +161,12 @@ router.put('/:id/committee-review', authenticate, authorize('committee', 'admin'
         }
 
         // Create the review record
-        await pool.query(
-            'INSERT INTO committee_reviews (request_id, reviewer_id, decision, remarks) VALUES (?, ?, ?, ?)',
-            [request.id, req.user.id, decision, remarks || null]
-        );
+        await dbInsert('committee_reviews', [{
+            request_id: request.id,
+            reviewer_id: req.user.id,
+            decision,
+            remarks: remarks || null
+        }]);
 
         // Determine new status
         let newStatus;
@@ -173,10 +175,7 @@ router.put('/:id/committee-review', authenticate, authorize('committee', 'admin'
         } else if (decision === 'need_info') {
             newStatus = 'committee_questions';
         } else if (decision === 'approve') {
-            const [allReviews] = await pool.query(
-                'SELECT * FROM committee_reviews WHERE request_id = ? ORDER BY created_at ASC',
-                [request.id]
-            );
+            const allReviews = await dbFetch('getAllCommitteeReviewsByRequestId', { request_id: request.id });
             const latestByReviewer = {};
             for (const r of allReviews) {
                 const ts = new Date(r.created_at).getTime();
@@ -196,7 +195,7 @@ router.put('/:id/committee-review', authenticate, authorize('committee', 'admin'
             newStatus = request.status;
         }
 
-        await pool.query('UPDATE intake_requests SET status = ? WHERE id = ?', [newStatus, request.id]);
+        await dbUpdate('intake_requests', { status: newStatus }, { id: request.id });
         res.json({ message: `Committee review completed: ${decision}`, status: newStatus });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -206,7 +205,7 @@ router.put('/:id/committee-review', authenticate, authorize('committee', 'admin'
 // PUT /api/workflow/:id/start-development - Move approved request to development
 router.put('/:id/start-development', authenticate, authorize('admin', 'committee'), async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT * FROM intake_requests WHERE id = ?', [req.params.id]);
+        const rows = await dbFetch('getSimpleRequestById', { id: req.params.id });
         if (rows.length === 0) { res.status(404).json({ error: 'Request not found' }); return; }
         const request = rows[0];
 
@@ -214,7 +213,7 @@ router.put('/:id/start-development', authenticate, authorize('admin', 'committee
             res.status(400).json({ error: 'Only approved requests can start development' }); return;
         }
 
-        await pool.query('UPDATE intake_requests SET status = ? WHERE id = ?', ['development', request.id]);
+        await dbUpdate('intake_requests', { status: 'development' }, { id: request.id });
         res.json({ message: 'Development started', status: 'development' });
     } catch (error) {
         res.status(500).json({ error: error.message });
