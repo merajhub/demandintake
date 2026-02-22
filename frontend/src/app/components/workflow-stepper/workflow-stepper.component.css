@@ -1,0 +1,70 @@
+.stepper-container {
+  padding: 20px 0;
+  overflow-x: auto;
+}
+.stepper-track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 500px;
+}
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+.step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--stepper-inactive);
+  color: white;
+  transition: all 0.3s ease;
+}
+.step-circle i {
+  font-size: 16px;
+}
+.step.active .step-circle {
+  background: var(--stepper-active);
+  box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.2);
+}
+.step.completed .step-circle {
+  background: var(--stepper-active);
+}
+.step-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.step.active .step-label,
+.step.completed .step-label {
+  color: var(--text-primary);
+}
+.step-connector {
+  flex: 1;
+  height: 3px;
+  background: var(--stepper-inactive);
+  margin: 0 4px;
+  margin-bottom: 24px;
+  min-width: 40px;
+  transition: background 0.3s ease;
+}
+.step-connector.completed {
+  background: var(--stepper-active);
+}
+@media (max-width: 600px) {
+  .step-label { font-size: 9px; }
+  .step-circle { width: 28px; height: 28px; font-size: 12px; }
+  .step-connector { min-width: 20px; }
+}

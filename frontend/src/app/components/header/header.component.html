@@ -1,0 +1,14 @@
+<div class="header">
+  <div class="header-content">
+    <div class="header-left">
+      <span class="brand">Demand Intake Process Tracker</span>
+    </div>
+    <div class="header-right" *ngIf="user">
+      <span class="user-name hide-mobile">{{ user.full_name }}</span>
+      <button pButton type="button" icon="pi pi-user"
+              class="p-button-rounded p-button-text header-avatar"
+              (click)="menu.toggle($event)"></button>
+      <p-menu #menu [model]="menuItems" [popup]="true"></p-menu>
+    </div>
+  </div>
+</div>

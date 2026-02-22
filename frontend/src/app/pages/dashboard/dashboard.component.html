@@ -1,0 +1,67 @@
+<app-header [user]="currentUser" (logoutClicked)="logout()"></app-header>
+
+<div class="dashboard-container animate-in">
+  <div class="dashboard-header">
+    <div>
+      <h2>My Requests</h2>
+      <p>Manage and track your demand intake requests</p>
+    </div>
+    <button pButton label="New Request" icon="pi pi-plus" routerLink="/request/new"></button>
+  </div>
+
+  <div class="filter-bar">
+    <div class="chip-filters">
+      <button *ngFor="let f of statusOptions"
+              class="filter-chip" [class.active]="statusFilter === f.value"
+              (click)="statusFilter = f.value">
+        {{ f.label }}
+      </button>
+    </div>
+  </div>
+
+  <div class="requests-grid">
+    @for (req of filteredRequests; track req.id) {
+      <div class="request-card" (click)="openRequest(req.id)">
+        <div class="card-header">
+          <span class="status-badge" [class]="'status-' + req.status">
+            {{ formatStatus(req.status) }}
+          </span>
+          <span class="priority-badge" [class]="'priority-' + req.priority_level">
+            {{ req.priority_level | titlecase }}
+          </span>
+        </div>
+        <h3>{{ req.project_title }}</h3>
+        <div class="card-meta">
+          <div class="meta-item">
+            <i class="pi pi-building"></i>
+            <span>{{ req.domain || 'N/A' }}</span>
+          </div>
+          <div class="meta-item">
+            <i class="pi pi-dollar"></i>
+            <span>{{ req.estimated_budget ? ('$' + req.estimated_budget.toLocaleString()) : 'N/A' }}</span>
+          </div>
+          <div class="meta-item">
+            <i class="pi pi-calendar"></i>
+            <span>{{ req.date_of_submission || 'Not set' }}</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="requestor" *ngIf="req.requestor">
+            <i class="pi pi-user"></i>
+            {{ req.requestor.full_name }}
+          </span>
+          <i class="pi pi-arrow-right arrow"></i>
+        </div>
+      </div>
+    }
+
+    @if (filteredRequests.length === 0) {
+      <div class="empty-state">
+        <i class="pi pi-inbox empty-icon"></i>
+        <h3>No requests found</h3>
+        <p>Create your first intake request to get started.</p>
+        <button pButton label="New Request" icon="pi pi-plus" routerLink="/request/new"></button>
+      </div>
+    }
+  </div>
+</div>

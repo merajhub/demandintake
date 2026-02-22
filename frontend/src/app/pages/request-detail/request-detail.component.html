@@ -1,0 +1,608 @@
+<app-header [user]="currentUser" (logoutClicked)="logout()"></app-header>
+
+<div class="page-container animate-in" *ngIf="!loading">
+  <!-- Dark Card Wrapper -->
+  <div class="card-dark main-card">
+    <app-workflow-stepper [status]="request.status || 'draft'"></app-workflow-stepper>
+
+    <!-- ===== TAB BAR ===== -->
+    <div class="tab-bar">
+      <button *ngFor="let tab of tabs; let i = index"
+              class="tab-btn" [class.active]="activeTab === i"
+              (click)="activeTab = i">
+        {{ tab }}
+      </button>
+    </div>
+
+    <div class="tab-content">
+      <!-- INTAKE FORM -->
+      <div *ngIf="activeTab === 0" class="form-section">
+        <div class="info-banner" *ngIf="!isEditable">
+          <i class="pi pi-info-circle"></i>
+          This form is read-only in the current state.
+        </div>
+
+        <!-- Project Overview -->
+        <p-accordion [multiple]="true" [activeIndex]="[0]">
+          <p-accordionTab>
+            <ng-template pTemplate="header">
+              <div class="section-title"><i class="pi pi-file"></i> Project Overview</div>
+            </ng-template>
+            <div class="panel-body">
+              <div class="field full-width">
+                <label for="projTitle">Project Title</label>
+                <input id="projTitle" pInputText [(ngModel)]="request.project_title" [disabled]="!isEditable"
+                       placeholder="Enter project title" class="w-full" />
+              </div>
+
+              <div class="form-row">
+                <div class="field">
+                  <label>Domain</label>
+                  <p-dropdown [(ngModel)]="request.domain" [options]="domainOptions" optionLabel="label" optionValue="value"
+                              [disabled]="!isEditable" placeholder="Select domain" styleClass="w-full"></p-dropdown>
+                </div>
+                <div class="field">
+                  <label>Estimated Budget USD</label>
+                  <div class="p-input-icon-left w-full">
+                    <i class="pi pi-dollar"></i>
+                    <input pInputText type="number" [(ngModel)]="request.estimated_budget"
+                           [disabled]="!isEditable" placeholder="0.00" class="w-full" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Type of Request</label>
+                  <p-dropdown [(ngModel)]="request.type_of_request" [options]="requestTypeOptions" optionLabel="label" optionValue="value"
+                              [disabled]="!isEditable" placeholder="Select type" styleClass="w-full"></p-dropdown>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="field">
+                  <label>Priority Level</label>
+                  <p-dropdown [(ngModel)]="request.priority_level" [options]="priorityOptions" optionLabel="label" optionValue="value"
+                              [disabled]="!isEditable" placeholder="Select priority" styleClass="w-full"></p-dropdown>
+                </div>
+                <div class="field">
+                  <label>Date of Submission</label>
+                  <p-calendar [(ngModel)]="request.date_of_submission" [disabled]="!isEditable"
+                              [showIcon]="true" dateFormat="yy-mm-dd" styleClass="w-full"></p-calendar>
+                </div>
+                <div class="field">
+                  <label>Estimated Completion Date</label>
+                  <p-calendar [(ngModel)]="request.estimated_completion_date" [disabled]="!isEditable"
+                              [showIcon]="true" dateFormat="yy-mm-dd" styleClass="w-full"></p-calendar>
+                </div>
+              </div>
+            </div>
+          </p-accordionTab>
+
+          <!-- Requestor Information -->
+          <p-accordionTab>
+            <ng-template pTemplate="header">
+              <div class="section-title"><i class="pi pi-user"></i> Requestor Information</div>
+            </ng-template>
+            <div class="panel-body">
+              <div class="form-row">
+                <div class="field">
+                  <label>Department</label>
+                  <input pInputText [(ngModel)]="requestorInfo.department" [disabled]="!isEditable" class="w-full" />
+                </div>
+                <div class="field">
+                  <label>Phone</label>
+                  <input pInputText [(ngModel)]="requestorInfo.phone" [disabled]="!isEditable" class="w-full" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label>Manager Name</label>
+                  <input pInputText [(ngModel)]="requestorInfo.manager_name" [disabled]="!isEditable" class="w-full" />
+                </div>
+                <div class="field">
+                  <label>Business Unit</label>
+                  <input pInputText [(ngModel)]="requestorInfo.business_unit" [disabled]="!isEditable" class="w-full" />
+                </div>
+                <div class="field">
+                  <label>Cost Center</label>
+                  <input pInputText [(ngModel)]="requestorInfo.cost_center" [disabled]="!isEditable" class="w-full" />
+                </div>
+              </div>
+            </div>
+          </p-accordionTab>
+
+          <!-- Project Specifications -->
+          <p-accordionTab>
+            <ng-template pTemplate="header">
+              <div class="section-title"><i class="pi pi-cog"></i> Project Specifications</div>
+            </ng-template>
+            <div class="panel-body">
+              <div class="field full-width">
+                <label>Description</label>
+                <textarea pInputTextarea [(ngModel)]="projectSpecs.description" [disabled]="!isEditable"
+                          rows="3" placeholder="Describe the project" class="w-full"></textarea>
+              </div>
+              <div class="field full-width">
+                <label>Business Justification</label>
+                <textarea pInputTextarea [(ngModel)]="projectSpecs.business_justification" [disabled]="!isEditable"
+                          rows="3" placeholder="Why is this project needed?" class="w-full"></textarea>
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label>Expected Outcomes</label>
+                  <textarea pInputTextarea [(ngModel)]="projectSpecs.expected_outcomes" [disabled]="!isEditable"
+                            rows="3" class="w-full"></textarea>
+                </div>
+                <div class="field">
+                  <label>Technical Requirements</label>
+                  <textarea pInputTextarea [(ngModel)]="projectSpecs.technical_requirements" [disabled]="!isEditable"
+                            rows="3" class="w-full"></textarea>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label>Dependencies</label>
+                  <textarea pInputTextarea [(ngModel)]="projectSpecs.dependencies" [disabled]="!isEditable"
+                            rows="2" class="w-full"></textarea>
+                </div>
+                <div class="field">
+                  <label>Risks</label>
+                  <textarea pInputTextarea [(ngModel)]="projectSpecs.risks" [disabled]="!isEditable"
+                            rows="2" class="w-full"></textarea>
+                </div>
+              </div>
+            </div>
+          </p-accordionTab>
+        </p-accordion>
+      </div>
+
+      <!-- SCRUB TEAM TAB -->
+      <div *ngIf="activeTab === 1" class="form-section scrub-tab">
+        <!-- Top row: info text on the left, + Add button on the right -->
+        <div class="scrub-header-row">
+          <span class="scrub-info-text">
+            This screen will be enabled for comments once the scrub team starts the review process
+          </span>
+          <button pButton label="Add" icon="pi pi-plus" class="p-button-rounded p-button-danger add-btn"
+                  *ngIf="canScrubReview && !hasExistingScrubGroup"></button>
+        </div>
+
+        <!-- ===== Grouped conversations per reviewer ===== -->
+        <div *ngFor="let convo of groupedScrubConversations" class="conversation-group">
+          <!-- GROUP HEADER ROW: Reviewer Name | Decision | Date -->
+          <div class="group-header-row">
+            <span class="reviewer-name"><i class="pi pi-user"></i> {{ convo.reviewerName }}</span>
+
+            <!-- Editable Decision dropdown: only for own group & scrub/admin -->
+            <ng-container *ngIf="convo.reviewerId === currentUser?.id && isScrubOrAdmin">
+              <p-dropdown [(ngModel)]="scrubDecision" [options]="scrubDecisionOptions"
+                          optionLabel="label" optionValue="value"
+                          [disabled]="!convo.canDecide && hasExistingScrubGroup"
+                          placeholder="Select Decision" styleClass="group-decision-dd"></p-dropdown>
+            </ng-container>
+
+            <!-- Read-only Decision dropdown: for other users' groups -->
+            <ng-container *ngIf="convo.reviewerId !== currentUser?.id || !isScrubOrAdmin">
+              <p-dropdown [ngModel]="convo.latestDecision" [options]="scrubDecisionOptions"
+                          optionLabel="label" optionValue="value"
+                          [disabled]="true"
+                          placeholder="No Decision" styleClass="group-decision-dd"></p-dropdown>
+            </ng-container>
+
+            <span class="review-date" *ngIf="convo.latestReviewDate">
+              {{ convo.latestReviewDate | date:'short' }}
+            </span>
+          </div>
+
+          <!-- CONVERSATION ENTRIES timeline -->
+          <div class="group-body">
+            <div *ngFor="let entry of convo.entries" class="convo-entry"
+                 [class.is-review]="entry.type === 'review'" [class.is-reply]="entry.type === 'reply'">
+              <div class="entry-label-row">
+                <span class="entry-label">{{ entry.type === 'review' ? 'Reviewer Remark' : 'Submitter Comments' }}</span>
+                <span class="entry-date" *ngIf="entry.created_at">{{ entry.created_at | date:'short' }}</span>
+                <button *ngIf="entry.canEdit" pButton icon="pi pi-pencil"
+                        class="p-button-text p-button-sm p-button-warning edit-btn"
+                        pTooltip="Edit question" (click)="startEditReview(entry)"></button>
+              </div>
+
+              <!-- Read-only message or edit mode -->
+              <ng-container *ngIf="editingReviewId !== entry.reviewId">
+                <textarea pInputTextarea [value]="entry.message" [disabled]="true" rows="2" class="w-full entry-textarea"></textarea>
+              </ng-container>
+              <ng-container *ngIf="editingReviewId === entry.reviewId">
+                <textarea pInputTextarea [(ngModel)]="editReviewText" rows="3" class="w-full"></textarea>
+                <div class="inline-edit-actions">
+                  <button pButton label="Save" icon="pi pi-check" class="p-button-sm p-button-success" (click)="saveEditReview(entry)"></button>
+                  <button pButton label="Cancel" icon="pi pi-times" class="p-button-sm p-button-secondary" (click)="cancelEditReview()"></button>
+                </div>
+              </ng-container>
+            </div>
+
+            <!-- SUBMITTER REPLY (editable) + ATTACHMENTS in one row -->
+            <div *ngIf="convo.needsReply && canReplyToScrub" class="submitter-attach-row">
+              <div class="submitter-comment-col">
+                <div class="entry-label-row">
+                  <span class="entry-label">Submitter Comments</span>
+                </div>
+                <textarea pInputTextarea [(ngModel)]="replyTexts[convo.reviewerId]" rows="3"
+                          placeholder="Type your reply..." class="w-full"></textarea>
+                <div class="reply-actions">
+                  <button pButton label="Send Reply" icon="pi pi-send" class="p-button-sm"
+                          [disabled]="!replyTexts[convo.reviewerId]?.trim()"
+                          (click)="sendSingleReply(convo)"></button>
+                </div>
+              </div>
+              <div class="attachment-col">
+                <div class="entry-label-row">
+                  <span class="entry-label">Attachments</span>
+                </div>
+                <div class="scrub-upload-area" (dragover)="$event.preventDefault()" (drop)="onFileDrop($event)">
+                  <input type="file" #fileInputScrub multiple (change)="onFileSelect($event)" style="display:none">
+                  <i class="pi pi-cloud-upload scrub-upload-icon"></i>
+                  <div class="scrub-upload-text">
+                    <a class="scrub-choose-link" (click)="fileInputScrub.click()">Choose File</a>
+                    <span> or drag and drop</span>
+                  </div>
+                </div>
+                <div *ngIf="selectedFiles.length > 0" class="file-list">
+                  <div *ngFor="let f of selectedFiles; let i = index" class="file-item">
+                    <i class="pi pi-paperclip"></i>
+                    <span>{{ f.name }}</span>
+                    <button pButton icon="pi pi-times" class="p-button-rounded p-button-text p-button-sm"
+                            (click)="removeFile(i)"></button>
+                  </div>
+                </div>
+                <div *ngIf="request.attachments && request.attachments.length > 0" class="file-list">
+                  <div *ngFor="let att of request.attachments" class="file-item">
+                    <i class="pi pi-paperclip"></i>
+                    <span>{{ att.original_name }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUBMITTER REPLY (disabled) + ATTACHMENTS in one row (visible to scrub while waiting) -->
+            <div *ngIf="convo.needsReply && !canReplyToScrub" class="submitter-attach-row">
+              <div class="submitter-comment-col">
+                <div class="entry-label-row">
+                  <span class="entry-label">Submitter Comments</span>
+                </div>
+                <textarea pInputTextarea [disabled]="true" rows="3" placeholder="Awaiting submitter reply..." class="w-full entry-textarea"></textarea>
+              </div>
+              <div class="attachment-col">
+                <div class="entry-label-row">
+                  <span class="entry-label">Attachments</span>
+                </div>
+                <div *ngIf="request.attachments && request.attachments.length > 0" class="file-list">
+                  <div *ngFor="let att of request.attachments" class="file-item">
+                    <i class="pi pi-paperclip"></i>
+                    <span>{{ att.original_name }}</span>
+                  </div>
+                </div>
+                <div *ngIf="!request.attachments || request.attachments.length === 0" class="no-attachments">No attachments</div>
+              </div>
+            </div>
+
+            <!-- When no pending reply: still show attachments row for submitter -->
+            <div *ngIf="!convo.needsReply && (request.requestor_id === currentUser?.id || currentUser?.role === 'admin')" class="submitter-attach-row">
+              <div class="submitter-comment-col">
+                <!-- empty placeholder to keep layout -->
+              </div>
+              <div class="attachment-col">
+                <div class="entry-label-row">
+                  <span class="entry-label">Attachments</span>
+                </div>
+                <div class="scrub-upload-area" (dragover)="$event.preventDefault()" (drop)="onFileDrop($event)">
+                  <input type="file" #fileInputScrubAlt multiple (change)="onFileSelect($event)" style="display:none">
+                  <i class="pi pi-cloud-upload scrub-upload-icon"></i>
+                  <div class="scrub-upload-text">
+                    <a class="scrub-choose-link" (click)="fileInputScrubAlt.click()">Choose File</a>
+                    <span> or drag and drop</span>
+                  </div>
+                </div>
+                <div *ngIf="selectedFiles.length > 0" class="file-list">
+                  <div *ngFor="let f of selectedFiles; let i = index" class="file-item">
+                    <i class="pi pi-paperclip"></i>
+                    <span>{{ f.name }}</span>
+                    <button pButton icon="pi pi-times" class="p-button-rounded p-button-text p-button-sm"
+                            (click)="removeFile(i)"></button>
+                  </div>
+                </div>
+                <div *ngIf="request.attachments && request.attachments.length > 0" class="file-list">
+                  <div *ngFor="let att of request.attachments" class="file-item">
+                    <i class="pi pi-paperclip"></i>
+                    <span>{{ att.original_name }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- NEW REVIEWER REMARK: visible when submitter replied and this is own group -->
+            <div *ngIf="convo.canDecide && convo.reviewerId === currentUser?.id && isScrubOrAdmin"
+                 class="convo-entry is-review new-remark-entry">
+              <div class="entry-label-row">
+                <span class="entry-label">Reviewer Remark</span>
+              </div>
+              <textarea pInputTextarea [(ngModel)]="scrubRemarks" rows="2"
+                        placeholder="Add your remarks or follow-up question..." class="w-full"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- FIRST-TIME REVIEW: section for scrub member who hasn't reviewed yet -->
+        <div *ngIf="canScrubReview && !hasExistingScrubGroup" class="conversation-group new-review-group">
+          <div class="group-header-row">
+            <span class="reviewer-name"><i class="pi pi-user"></i> {{ currentUser?.full_name }}</span>
+            <p-dropdown [(ngModel)]="scrubDecision" [options]="scrubDecisionOptions"
+                        optionLabel="label" optionValue="value"
+                        placeholder="Select Decision" styleClass="group-decision-dd"></p-dropdown>
+          </div>
+          <div class="group-body">
+            <div class="convo-entry is-review">
+              <div class="entry-label-row">
+                <span class="entry-label">Reviewer Remark <span class="required">*</span></span>
+              </div>
+              <textarea pInputTextarea [(ngModel)]="scrubRemarks" rows="3"
+                        placeholder="Enter your review remarks..." class="w-full"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pending question notice for scrub member -->
+        <div *ngIf="hasPendingQuestion" class="info-banner warn-banner">
+          <i class="pi pi-exclamation-triangle"></i>
+          You have a pending question awaiting the submitter's reply. You can edit your existing question using the pencil icon above.
+        </div>
+
+      </div>
+
+      <!-- COMMITTEE TEAM TAB -->
+      <div *ngIf="activeTab === 2" class="form-section committee-tab">
+        <!-- Top row: info text on the left, + Add button on the right -->
+        <div class="scrub-header-row">
+          <span class="scrub-info-text">
+            This screen will be enabled for comments once the committee starts the review process
+          </span>
+          <button pButton label="Add" icon="pi pi-plus" class="p-button-rounded p-button-danger add-btn"
+                  *ngIf="canCommitteeReview && !hasExistingCommitteeGroup"></button>
+        </div>
+
+        <!-- ===== Grouped conversations per reviewer ===== -->
+        <div *ngFor="let convo of groupedCommitteeConversations" class="conversation-group">
+          <!-- GROUP HEADER ROW: Reviewer Name | Decision | Date -->
+          <div class="group-header-row">
+            <span class="reviewer-name"><i class="pi pi-user"></i> {{ convo.reviewerName }}</span>
+
+            <!-- Editable Decision dropdown: only for own group & committee/admin -->
+            <ng-container *ngIf="convo.reviewerId === currentUser?.id && isCommitteeOrAdmin">
+              <p-dropdown [(ngModel)]="committeeDecision" [options]="committeeDecisionOptions"
+                          optionLabel="label" optionValue="value"
+                          [disabled]="!convo.canDecide && hasExistingCommitteeGroup"
+                          placeholder="Select Decision" styleClass="group-decision-dd"></p-dropdown>
+            </ng-container>
+
+            <!-- Read-only Decision dropdown: for other users' groups -->
+            <ng-container *ngIf="convo.reviewerId !== currentUser?.id || !isCommitteeOrAdmin">
+              <p-dropdown [ngModel]="convo.latestDecision" [options]="committeeDecisionOptions"
+                          optionLabel="label" optionValue="value"
+                          [disabled]="true"
+                          placeholder="No Decision" styleClass="group-decision-dd"></p-dropdown>
+            </ng-container>
+
+            <span class="review-date" *ngIf="convo.latestReviewDate">
+              {{ convo.latestReviewDate | date:'short' }}
+            </span>
+          </div>
+
+          <!-- CONVERSATION ENTRIES timeline -->
+          <div class="group-body">
+            <div *ngFor="let entry of convo.entries" class="convo-entry"
+                 [class.is-review]="entry.type === 'review'" [class.is-reply]="entry.type === 'reply'">
+              <div class="entry-label-row">
+                <span class="entry-label">{{ entry.type === 'review' ? 'Reviewer Remark' : 'Submitter Comments' }}</span>
+                <span class="entry-date" *ngIf="entry.created_at">{{ entry.created_at | date:'short' }}</span>
+              </div>
+              <textarea pInputTextarea [value]="entry.message" [disabled]="true" rows="2" class="w-full entry-textarea"></textarea>
+            </div>
+
+            <!-- SUBMITTER REPLY (editable) + ATTACHMENTS in one row -->
+            <div *ngIf="convo.needsReply && canReplyToCommittee" class="submitter-attach-row">
+              <div class="submitter-comment-col">
+                <div class="entry-label-row">
+                  <span class="entry-label">Submitter Comments</span>
+                </div>
+                <textarea pInputTextarea [(ngModel)]="committeeReplyTexts[convo.reviewerId]" rows="3"
+                          placeholder="Type your reply..." class="w-full"></textarea>
+                <div class="reply-actions">
+                  <button pButton label="Send Reply" icon="pi pi-send" class="p-button-sm"
+                          [disabled]="!committeeReplyTexts[convo.reviewerId]?.trim()"
+                          (click)="sendCommitteeSingleReply(convo)"></button>
+                </div>
+              </div>
+              <div class="attachment-col">
+                <div class="entry-label-row">
+                  <span class="entry-label">Attachments</span>
+                </div>
+                <div class="scrub-upload-area" (dragover)="$event.preventDefault()" (drop)="onFileDrop($event)">
+                  <input type="file" #fileInputCommittee multiple (change)="onFileSelect($event)" style="display:none">
+                  <i class="pi pi-cloud-upload scrub-upload-icon"></i>
+                  <div class="scrub-upload-text">
+                    <a class="scrub-choose-link" (click)="fileInputCommittee.click()">Choose File</a>
+                    <span> or drag and drop</span>
+                  </div>
+                </div>
+                <div *ngIf="selectedFiles.length > 0" class="file-list">
+                  <div *ngFor="let f of selectedFiles; let i = index" class="file-item">
+                    <i class="pi pi-paperclip"></i>
+                    <span>{{ f.name }}</span>
+                    <button pButton icon="pi pi-times" class="p-button-rounded p-button-text p-button-sm"
+                            (click)="removeFile(i)"></button>
+                  </div>
+                </div>
+                <div *ngIf="request.attachments && request.attachments.length > 0" class="file-list">
+                  <div *ngFor="let att of request.attachments" class="file-item">
+                    <i class="pi pi-paperclip"></i>
+                    <span>{{ att.original_name }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUBMITTER REPLY (disabled) + ATTACHMENTS in one row (visible to committee while waiting) -->
+            <div *ngIf="convo.needsReply && !canReplyToCommittee" class="submitter-attach-row">
+              <div class="submitter-comment-col">
+                <div class="entry-label-row">
+                  <span class="entry-label">Submitter Comments</span>
+                </div>
+                <textarea pInputTextarea [disabled]="true" rows="3" placeholder="Awaiting submitter reply..." class="w-full entry-textarea"></textarea>
+              </div>
+              <div class="attachment-col">
+                <div class="entry-label-row">
+                  <span class="entry-label">Attachments</span>
+                </div>
+                <div *ngIf="request.attachments && request.attachments.length > 0" class="file-list">
+                  <div *ngFor="let att of request.attachments" class="file-item">
+                    <i class="pi pi-paperclip"></i>
+                    <span>{{ att.original_name }}</span>
+                  </div>
+                </div>
+                <div *ngIf="!request.attachments || request.attachments.length === 0" class="no-attachments">No attachments</div>
+              </div>
+            </div>
+
+            <!-- When no pending reply: still show attachments row for submitter -->
+            <div *ngIf="!convo.needsReply && (request.requestor_id === currentUser?.id || currentUser?.role === 'admin')" class="submitter-attach-row">
+              <div class="submitter-comment-col">
+                <!-- empty placeholder to keep layout -->
+              </div>
+              <div class="attachment-col">
+                <div class="entry-label-row">
+                  <span class="entry-label">Attachments</span>
+                </div>
+                <div class="scrub-upload-area" (dragover)="$event.preventDefault()" (drop)="onFileDrop($event)">
+                  <input type="file" #fileInputCommAlt multiple (change)="onFileSelect($event)" style="display:none">
+                  <i class="pi pi-cloud-upload scrub-upload-icon"></i>
+                  <div class="scrub-upload-text">
+                    <a class="scrub-choose-link" (click)="fileInputCommAlt.click()">Choose File</a>
+                    <span> or drag and drop</span>
+                  </div>
+                </div>
+                <div *ngIf="selectedFiles.length > 0" class="file-list">
+                  <div *ngFor="let f of selectedFiles; let i = index" class="file-item">
+                    <i class="pi pi-paperclip"></i>
+                    <span>{{ f.name }}</span>
+                    <button pButton icon="pi pi-times" class="p-button-rounded p-button-text p-button-sm"
+                            (click)="removeFile(i)"></button>
+                  </div>
+                </div>
+                <div *ngIf="request.attachments && request.attachments.length > 0" class="file-list">
+                  <div *ngFor="let att of request.attachments" class="file-item">
+                    <i class="pi pi-paperclip"></i>
+                    <span>{{ att.original_name }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- NEW REVIEWER REMARK: visible when submitter replied and this is own group -->
+            <div *ngIf="convo.canDecide && convo.reviewerId === currentUser?.id && isCommitteeOrAdmin"
+                 class="convo-entry is-review new-remark-entry">
+              <div class="entry-label-row">
+                <span class="entry-label">Reviewer Remark</span>
+              </div>
+              <textarea pInputTextarea [(ngModel)]="committeeRemarks" rows="2"
+                        placeholder="Add your remarks or follow-up question..." class="w-full"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- FIRST-TIME REVIEW: section for committee member who hasn't reviewed yet -->
+        <div *ngIf="canCommitteeReview && !hasExistingCommitteeGroup" class="conversation-group new-review-group">
+          <div class="group-header-row">
+            <span class="reviewer-name"><i class="pi pi-user"></i> {{ currentUser?.full_name }}</span>
+            <p-dropdown [(ngModel)]="committeeDecision" [options]="committeeDecisionOptions"
+                        optionLabel="label" optionValue="value"
+                        placeholder="Select Decision" styleClass="group-decision-dd"></p-dropdown>
+          </div>
+          <div class="group-body">
+            <div class="convo-entry is-review">
+              <div class="entry-label-row">
+                <span class="entry-label">Reviewer Remark <span class="required">*</span></span>
+              </div>
+              <textarea pInputTextarea [(ngModel)]="committeeRemarks" rows="3"
+                        placeholder="Enter your committee review remarks..." class="w-full"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pending question notice for committee member -->
+        <div *ngIf="hasPendingCommitteeQuestion" class="info-banner warn-banner">
+          <i class="pi pi-exclamation-triangle"></i>
+          You have a pending question awaiting the submitter's reply.
+        </div>
+      </div>
+
+      <!-- APPROVED TAB -->
+      <div *ngIf="activeTab === 3" class="form-section">
+        <div class="status-display" *ngIf="request.status === 'approved'">
+          <i class="pi pi-check-circle big-icon success"></i>
+          <h3>Request Approved</h3>
+          <p>This request has been approved by the committee and is ready for development.</p>
+          <button pButton label="Start Development" icon="pi pi-play"
+                  *ngIf="currentUser?.role === 'admin' || currentUser?.role === 'committee'"
+                  (click)="startDevelopment()"></button>
+        </div>
+        <div class="status-display" *ngIf="request.status === 'rejected'">
+          <i class="pi pi-times-circle big-icon error"></i>
+          <h3>Request Rejected</h3>
+          <p>This request has been rejected. Please review the feedback and resubmit if needed.</p>
+        </div>
+        <div class="status-display" *ngIf="request.status !== 'approved' && request.status !== 'rejected'">
+          <i class="pi pi-clock big-icon pending"></i>
+          <h3>Pending Approval</h3>
+          <p>This request is still being reviewed.</p>
+        </div>
+      </div>
+
+      <!-- DEVELOPMENT TAB -->
+      <div *ngIf="activeTab === 4" class="form-section">
+        <div class="status-display" *ngIf="request.status === 'development'">
+          <i class="pi pi-code big-icon dev"></i>
+          <h3>In Development</h3>
+          <p>This project is now in the development phase.</p>
+        </div>
+        <div class="status-display" *ngIf="request.status !== 'development'">
+          <i class="pi pi-clock big-icon pending"></i>
+          <h3>Not Yet Started</h3>
+          <p>Development has not started for this request.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions">
+      <button pButton label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="cancel()"></button>
+
+      <button pButton label="Save" *ngIf="isEditable && activeTab === 0"
+              (click)="saveRequest()"></button>
+
+      <button pButton label="Submit" icon="pi pi-send" *ngIf="canSubmit && activeTab === 0"
+              (click)="submitRequest()"></button>
+
+      <button pButton label="Reply &amp; Resubmit" icon="pi pi-reply" *ngIf="canReplyToScrub && activeTab === 1 && allQuestionsAnswered"
+              (click)="replyToScrubFeedback()"></button>
+
+      <button pButton label="Save" *ngIf="canScrubReview && activeTab === 1"
+              (click)="submitScrubReview()"></button>
+
+      <button pButton label="Reply &amp; Resubmit" icon="pi pi-reply" *ngIf="canReplyToCommittee && activeTab === 2 && allCommitteeQuestionsAnswered"
+              (click)="replyToCommitteeFeedback()"></button>
+
+      <button pButton label="Save" *ngIf="canCommitteeReview && activeTab === 2"
+              (click)="submitCommitteeReview()"></button>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="loading" class="loading-container">
+  <p-progressSpinner></p-progressSpinner>
+</div>

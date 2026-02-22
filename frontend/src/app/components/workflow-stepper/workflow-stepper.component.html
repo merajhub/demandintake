@@ -1,0 +1,19 @@
+<div class="stepper-container">
+  <div class="stepper-track">
+    @for (step of steps; track step.label; let i = $index) {
+      <div class="step" [class.active]="i === activeIndex" [class.completed]="i < activeIndex">
+        <div class="step-circle">
+          @if (i < activeIndex) {
+            <i class="pi pi-check"></i>
+          } @else {
+            <span>{{ i + 1 }}</span>
+          }
+        </div>
+        <span class="step-label">{{ step.label }}</span>
+      </div>
+      @if (i < steps.length - 1) {
+        <div class="step-connector" [class.completed]="i < activeIndex"></div>
+      }
+    }
+  </div>
+</div>

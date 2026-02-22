@@ -1,0 +1,42 @@
+.header {
+  background: #D32F2F;
+  color: white;
+  height: 56px;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+}
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.brand {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+:host ::ng-deep .header-avatar {
+  color: white !important;
+}
+@media (max-width: 600px) {
+  .brand { font-size: 14px; }
+  .hide-mobile { display: none; }
+  .header { padding: 0 12px; }
+}

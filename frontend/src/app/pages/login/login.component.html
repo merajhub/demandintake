@@ -1,0 +1,89 @@
+<div class="login-page">
+  <div class="login-bg">
+    <div class="bg-circle c1"></div>
+    <div class="bg-circle c2"></div>
+    <div class="bg-circle c3"></div>
+  </div>
+
+  <div class="login-card animate-in">
+    <div class="login-header">
+      <i class="pi pi-clipboard logo-icon"></i>
+      <h1>Demand Intake</h1>
+      <p>Process Tracker</p>
+    </div>
+
+    <p-tabView [(activeIndex)]="tabIndex">
+      <p-tabPanel header="Login">
+        <div class="form-container">
+          <div class="field">
+            <label for="loginEmail">Email</label>
+            <span class="p-input-icon-left w-full">
+              <i class="pi pi-envelope"></i>
+              <input id="loginEmail" pInputText [(ngModel)]="loginEmail" type="email" placeholder="Enter your email" class="w-full" />
+            </span>
+          </div>
+
+          <div class="field">
+            <label for="loginPassword">Password</label>
+            <span class="p-input-icon-left w-full password-wrapper">
+              <i class="pi pi-lock"></i>
+              <input id="loginPassword" pInputText [(ngModel)]="loginPassword"
+                [type]="hidePassword ? 'password' : 'text'" placeholder="Enter your password" class="w-full" />
+              <button type="button" class="toggle-password" (click)="hidePassword = !hidePassword">
+                <i class="pi" [ngClass]="hidePassword ? 'pi-eye-slash' : 'pi-eye'"></i>
+              </button>
+            </span>
+          </div>
+
+          <button pButton label="{{ loading ? 'Signing in...' : 'Sign In' }}"
+            class="login-btn w-full" (click)="login()" [disabled]="loading"></button>
+
+          <div class="demo-hint">
+            <strong>Demo accounts:</strong><br>
+            john.gilbert&#64;company.com (Requestor)<br>
+            sarah.chen&#64;company.com (Scrub Team)<br>
+            mike.johnson&#64;company.com (Committee)<br>
+            <em>Password: password123</em>
+          </div>
+        </div>
+      </p-tabPanel>
+
+      <p-tabPanel header="Register">
+        <div class="form-container">
+          <div class="field">
+            <label for="regName">Full Name</label>
+            <span class="p-input-icon-left w-full">
+              <i class="pi pi-user"></i>
+              <input id="regName" pInputText [(ngModel)]="regName" placeholder="Enter your full name" class="w-full" />
+            </span>
+          </div>
+
+          <div class="field">
+            <label for="regEmail">Email</label>
+            <span class="p-input-icon-left w-full">
+              <i class="pi pi-envelope"></i>
+              <input id="regEmail" pInputText [(ngModel)]="regEmail" type="email" placeholder="Enter your email" class="w-full" />
+            </span>
+          </div>
+
+          <div class="field">
+            <label for="regPassword">Password</label>
+            <span class="p-input-icon-left w-full">
+              <i class="pi pi-lock"></i>
+              <input id="regPassword" pInputText [(ngModel)]="regPassword" type="password" placeholder="Choose a password" class="w-full" />
+            </span>
+          </div>
+
+          <div class="field">
+            <label for="regRole">Role</label>
+            <p-dropdown id="regRole" [(ngModel)]="regRole" [options]="roles" optionLabel="label" optionValue="value"
+              styleClass="w-full"></p-dropdown>
+          </div>
+
+          <button pButton label="{{ loading ? 'Creating...' : 'Create Account' }}"
+            class="login-btn w-full" (click)="register()" [disabled]="loading"></button>
+        </div>
+      </p-tabPanel>
+    </p-tabView>
+  </div>
+</div>
